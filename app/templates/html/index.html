@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IP Address Visualization</title>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+<body>
+  <h1>IP Address Visualization</h1>
+  <input type="file" id="csv" name="files" accept=".csv">
+  <svg width="800" height="600"></svg>
+  <script>
+    var svg = d3.select("svg"),
+        margin = {top: 20, right: 20, bottom: 30, left: 40},
+        width = +svg.attr("width") - margin.left - margin.right,
+        height = +svg.attr("height") - margin.top - margin.bottom;
+
+    var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+        y = d3.scaleLinear().rangeRound([height, 0]);
+
+    var g = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    document.getElementById('csv').addEventListener('change', function(evt) {
+      var file = evt.target.files[0];
+      var reader = new FileReader();
+      reader.readAsText(file);
+      reader.onload = function(event) {
+        var csvData = d3.csvParse(event.target.result);
+
+        var data = csvData.columns.map(function(column, i) {
+          return {
+            subnet: column,
+            ips: csvData.map(function(row) {
+              return row[column];
+            })
+          };
+        });
+
+        x.domain(data.map(function(d) { return d.subnet; }));
+        y.domain([0, d3.max(data, function(d) { return d.ips.length; })]);
+
+        g.selectAll(".bar")
+          .data(data)
+          .enter().append("rect")
+          .attr("class", "bar")
+          .attr("x", function(d) { return x(d.subnet); })
+          .attr("y", function(d) { return y(d.ips.length); })
+          .attr("width", x.bandwidth())
+          .attr("height", function(d) { return height - y(d.ips.length); })
+          .on('click', function(d, i) {
+            alert('IPs in ' + d.subnet + ': ' + d.ips.join(', '));
+          });
+      };
+    });
+  </script>
+</body>
+</html>
